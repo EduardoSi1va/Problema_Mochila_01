@@ -10,6 +10,19 @@ typedef struct item_
     bool escolhido; // Variável para verificar quais itens foram escolhidos na combinação final de saída.
 } ITEM;
 
+// Função para imprimir itens escolhidos com um título
+void imprimir_escolhidos(ITEM itens[], int n, const char *titulo)
+{
+    printf("\n%s\n", titulo);
+    for (int j = 0; j < n; j++)
+    {
+        if (itens[j].escolhido)
+        {
+            printf("%dº: Valor = %.2f, Peso = %.2f\n", j + 1, itens[j].valor, itens[j].peso);
+        }
+    }
+}
+
 // Função que troca duas posições de um vetor de lugar
 void swap(float v[], int i, int j)
 {
@@ -20,7 +33,7 @@ void swap(float v[], int i, int j)
 
 void quickSort(float v[], int bottom, int top)
 {
-    int pivo = v[(bottom + top) / 2];
+    float pivo = v[(bottom + top) / 2];
     int i = bottom, j = top;
     do
     {
@@ -70,6 +83,9 @@ float forca_bruta(ITEM itens[], int n, int peso_max)
             melhor_valor = valor_atual;
 
             int melhor_comb_binaria = i; // Atribui o número da melhor combinação encontrada
+            // limpar escolhas anteriores e marcar a nova melhor combinação
+            for (int t = 0; t < n; t++)
+                itens[t].escolhido = false;
             for (int k = 0; k < n; k++)
             {
                 if (melhor_comb_binaria % 2 == 1) // Caso um item genérico tenha sido escolhido, marca como 1(dentro da mochila)
@@ -88,9 +104,16 @@ float algoritmo_guloso(ITEM itens[], int n, float peso_max)
 {
 
     int i;
-    float razao[n];       // Cria um vetor auxiliar que armazena as razões
     float maiorValor = 0; // Somatório dos valores escolhidos
     float maiorPeso = 0;  // Somatório dos pesos escolhidos
+
+    // Aloca dinamicamente o vetor de razões para evitar VLA
+    float *razao = malloc(n * sizeof *razao);
+    if (!razao)
+    {
+        printf("Erro na alocação de memória\n");
+        return 0;
+    }
 
     // Percorre o vetor de itens e coloca as razões no vetor de razões
     for (i = 0; i < n; i++)
@@ -104,18 +127,23 @@ float algoritmo_guloso(ITEM itens[], int n, float peso_max)
     // Pega a partir da maior razão do vetor auxiliar e vai diminuindo
     // O loop acaba ou quando o somatório dos pesos for maior que o peso máximo
     // ou quando acabar o vetor.
-    for (i = n; i > 0 && maiorPeso < peso_max; i--)
+    for (i = n - 1; i >= 0 && maiorPeso < peso_max; i--)
     {
-        for (int j = 0; j < n; j++)
-        { // A cada razao escolhida, ele percorre o vetor original de itens
+        for (int j = 0; j < n; j++) // A cada razao escolhida, ele percorre o vetor original de itens
+        {
             if (razao[i] == itens[j].razao)
-            {                                 // Percorre até achar o item que possui a razão desejada
-                maiorPeso += itens[j].peso;   // Adiciona o peso dele ao somatório de pesos
-                maiorValor += itens[j].valor; // Adiciona o valor dele ao somatório de valores
-                itens[j].escolhido = true;    // Marca-o como escolhido
+            { // Percorre até achar o item que possui a razão desejada
+                if (maiorPeso + itens[j].peso <= peso_max)
+                {
+                    maiorPeso += itens[j].peso;   // Adiciona o peso dele ao somatório de pesos
+                    maiorValor += itens[j].valor; // Adiciona o valor dele ao somatório de valores
+                    itens[j].escolhido = true;    // Marca-o como escolhido
+                }
+                break; // item encontrado, passa para a próxima razão
             }
         }
     }
+    free(razao);
 
     return maiorValor; // Retorna o maior somatório de valores aproximado
 }
@@ -124,6 +152,12 @@ int main(void)
 {
     int n, peso_max;
     scanf("%d %d", &n, &peso_max);
+    if (n <= 0)
+    {
+        printf("Nenhum item\n");
+        return 0;
+    }
+
     ITEM *itens = malloc(n * sizeof(ITEM));
 
     if (!itens)
@@ -140,32 +174,16 @@ int main(void)
     }
 
     float valor_forca_bruta = forca_bruta(itens, n, peso_max);
-
-    printf("\nLista de itens escolhidos - Força Bruta:\n");
-    for (int j = 0; j < n; j++)
-    {
-        if (itens[j].escolhido)
-        {
-            printf("%dº: Valor = %.2f, Peso = %.2f\n", j + 1, itens[j].valor, itens[j].peso);
-        }
-    }
+    imprimir_escolhidos(itens, n, "Lista de itens escolhidos - Força Bruta:");
     printf("\nValor máximo (força bruta): %.2f\n", valor_forca_bruta);
 
     for (int i = 0; i < n; i++)
     {
-        itens[i].escolhido = false; // Atribui false para todos os itens (inicialmente todos estão fora da mochila)
+        itens[i].escolhido = false; // Atribui false aos itens para a saída do próximo algoritmo
     }
 
     float valor_algoritmo_guloso = algoritmo_guloso(itens, n, peso_max);
-
-    printf("\nLista de itens escolhidos - Algoritmo Guloso:\n");
-    for (int j = 0; j < n; j++)
-    {
-        if (itens[j].escolhido)
-        {
-            printf("%dº: Valor = %.2f, Peso = %.2f\n", j + 1, itens[j].valor, itens[j].peso);
-        }
-    }
+    imprimir_escolhidos(itens, n, "Lista de itens escolhidos - Algoritmo Guloso:");
     printf("\nValor máximo (algoritmo guloso): %.2f\n", valor_algoritmo_guloso);
 
     free(itens);
