@@ -179,7 +179,7 @@ int main(void)
 
     for (int i = 0; i < n; i++)
     {
-        itens[i].escolhido = false; // Atribui false aos itens para a saída do próximo algoritmo
+        itens[i].escolhido = false; // Atribui false aos itens novamente para a saída do próximo algoritmo
     }
 
     float valor_algoritmo_guloso = algoritmo_guloso(itens, n, peso_max);
