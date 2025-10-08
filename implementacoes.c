@@ -5,7 +5,7 @@
 
 typedef struct item_
 {
-    float peso, valor;
+    int peso, valor;
     float razao;
     bool escolhido; // Variável para verificar quais itens foram escolhidos na combinação final de saída.
 } ITEM;
@@ -16,10 +16,10 @@ void imprimir_escolhidos(ITEM itens[], int n, const char *titulo)
     printf("\n%s\n", titulo);
     for (int j = 0; j < n; j++)
     {
-        if (itens[j].escolhido)
-        {
-            printf("%dº: Valor = %.2f, Peso = %.2f\n", j + 1, itens[j].valor, itens[j].peso);
-        }
+            if (itens[j].escolhido)
+            {
+                printf("%dº: Valor = %d, Peso = %d\n", j + 1, itens[j].valor, itens[j].peso);
+            }
     }
 }
 
@@ -55,15 +55,15 @@ void quickSort(float v[], int bottom, int top)
         quickSort(v, i, top);
 }
 
-float forca_bruta(ITEM itens[], int n, int peso_max)
+int forca_bruta(ITEM itens[], int n, int peso_max)
 {
     int total_combinacoes = (int)pow(2, n); // 2^n combinações possíveis (já que cada item pode ou não ser incluído)
-    float melhor_valor = 0;
+    int melhor_valor = 0;
 
     // Testa todas as combinações possíveis (com índices de 0 a 2^n - 1)
     for (int i = 0; i < total_combinacoes; i++)
     {
-        float peso_atual = 0, valor_atual = 0;
+        int peso_atual = 0, valor_atual = 0;
 
         int comb_atual_binaria = i; // A cada iteração do for, pega um bit do número (ex: 5 = 1->0->1)
         for (int j = 0; j < n; j++)
@@ -88,7 +88,7 @@ float forca_bruta(ITEM itens[], int n, int peso_max)
                 itens[t].escolhido = false;
             for (int k = 0; k < n; k++)
             {
-                if (melhor_comb_binaria % 2 == 1) // Caso um item genérico tenha sido escolhido, marca como 1(dentro da mochila)
+                if (melhor_comb_binaria % 2 == 1) // Caso um item genérico tenha sido escolhido, marca como 1 (dentro da mochila)
                 {
                     itens[k].escolhido = true;
                 }
@@ -100,14 +100,14 @@ float forca_bruta(ITEM itens[], int n, int peso_max)
     return melhor_valor;
 }
 
-float algoritmo_guloso(ITEM itens[], int n, float peso_max)
+int algoritmo_guloso(ITEM itens[], int n, int peso_max)
 {
 
     int i;
-    float maiorValor = 0; // Somatório dos valores escolhidos
-    float maiorPeso = 0;  // Somatório dos pesos escolhidos
+    int maiorValor = 0; // Somatório dos valores escolhidos
+    int maiorPeso = 0;  // Somatório dos pesos escolhidos
 
-    // Aloca dinamicamente o vetor de razões para evitar VLA
+    // Alocação dinâmica do vetor de razões
     float *razao = malloc(n * sizeof *razao);
     if (!razao)
     {
@@ -168,23 +168,23 @@ int main(void)
 
     for (int i = 0; i < n; i++)
     {
-        scanf("%f %f", &itens[i].valor, &itens[i].peso);
-        itens[i].razao = itens[i].valor / itens[i].peso;
+        scanf("%d %d", &itens[i].valor, &itens[i].peso);
+        itens[i].razao = (float)itens[i].valor / (float)itens[i].peso; // razão como float
         itens[i].escolhido = false; // Atribui false para todos os itens (inicialmente todos estão fora da mochila)
     }
 
-    float valor_forca_bruta = forca_bruta(itens, n, peso_max);
+    int valor_forca_bruta = forca_bruta(itens, n, peso_max);
     imprimir_escolhidos(itens, n, "Lista de itens escolhidos - Força Bruta:");
-    printf("\nValor máximo (força bruta): %.2f\n", valor_forca_bruta);
+    printf("\nValor máximo (força bruta): %d\n", valor_forca_bruta);
 
     for (int i = 0; i < n; i++)
     {
         itens[i].escolhido = false; // Atribui false aos itens novamente para a saída do próximo algoritmo
     }
 
-    float valor_algoritmo_guloso = algoritmo_guloso(itens, n, peso_max);
+    int valor_algoritmo_guloso = algoritmo_guloso(itens, n, peso_max);
     imprimir_escolhidos(itens, n, "Lista de itens escolhidos - Algoritmo Guloso:");
-    printf("\nValor máximo (algoritmo guloso): %.2f\n", valor_algoritmo_guloso);
+    printf("\nValor máximo (algoritmo guloso): %d\n", valor_algoritmo_guloso);
 
     free(itens);
     return 0;
