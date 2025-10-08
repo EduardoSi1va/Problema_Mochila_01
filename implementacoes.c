@@ -16,10 +16,10 @@ void imprimir_escolhidos(ITEM itens[], int n, const char *titulo)
     printf("\n%s\n", titulo);
     for (int j = 0; j < n; j++)
     {
-            if (itens[j].escolhido)
-            {
-                printf("%dº: Valor = %d, Peso = %d\n", j + 1, itens[j].valor, itens[j].peso);
-            }
+        if (itens[j].escolhido)
+        {
+            printf("%dº: Valor = %d, Peso = %d\n", j + 1, itens[j].valor, itens[j].peso);
+        }
     }
 }
 
@@ -148,6 +148,43 @@ int algoritmo_guloso(ITEM itens[], int n, int peso_max)
     return maiorValor; // Retorna o maior somatório de valores aproximado
 }
 
+// Função recursiva que se baseia nas 
+int programacao_dinamica(ITEM itens[], int n, int peso_max, int **tabela_dinamica)
+{
+    // Casos bases para que as chamadas recursivas acabem
+    if (n == 0 || peso_max == 0)
+        return 0;
+
+    // Caso a célula da tabela já tenha sido calculada, retorna ela mesma
+    if (tabela_dinamica[n][peso_max] != -1)
+        return tabela_dinamica[n][peso_max];
+
+    // Caso o peso do item seja maior que o máximo, o item não pode ser incluído na mochila
+    if (itens[n - 1].peso > peso_max)
+        return tabela_dinamica[n][peso_max] = programacao_dinamica(itens, n - 1, peso_max, tabela_dinamica);
+
+    // Calcula a "utilidade" gerada ao incluir e ao não incluir o item na mochila
+    int incluir = itens[n - 1].valor + programacao_dinamica(itens, n - 1, (peso_max - itens[n - 1].peso), tabela_dinamica);
+    int nao_incluir = programacao_dinamica(itens, n - 1, peso_max, tabela_dinamica);
+
+    // Atribui o melhor resultado entre as duas possibilidades à tabela
+    return tabela_dinamica[n][peso_max] = (incluir > nao_incluir) ? incluir : nao_incluir;
+}
+
+// Função para verificar quais itens da tabela dinâmica foram escolhidos 
+void itens_escolhidos_dp(ITEM itens[], int n, int peso_max, int **tabela_dinamica)
+{
+    while (n > 0 && peso_max > 0)
+    {
+        if (tabela_dinamica[n][peso_max] != tabela_dinamica[n - 1][peso_max])
+        {
+            itens[n - 1].escolhido = 1;
+            peso_max -= itens[n - 1].peso;
+        }
+        n--;
+    }
+}
+
 int main(void)
 {
     int n, peso_max;
@@ -157,6 +194,7 @@ int main(void)
         printf("Nenhum item\n");
         return 0;
     }
+
 
     ITEM *itens = malloc(n * sizeof(ITEM));
 
@@ -170,7 +208,7 @@ int main(void)
     {
         scanf("%d %d", &itens[i].valor, &itens[i].peso);
         itens[i].razao = (float)itens[i].valor / (float)itens[i].peso; // razão como float
-        itens[i].escolhido = false; // Atribui false para todos os itens (inicialmente todos estão fora da mochila)
+        itens[i].escolhido = false;                                    // Atribui false para todos os itens (inicialmente todos estão fora da mochila)
     }
 
     int valor_forca_bruta = forca_bruta(itens, n, peso_max);
@@ -185,6 +223,42 @@ int main(void)
     int valor_algoritmo_guloso = algoritmo_guloso(itens, n, peso_max);
     imprimir_escolhidos(itens, n, "Lista de itens escolhidos - Algoritmo Guloso:");
     printf("\nValor máximo (algoritmo guloso): %d\n", valor_algoritmo_guloso);
+
+    // ----- Programação Dinâmica (top-down com tabela contígua) -----
+    // Aloca a tabela contígua (linhas = n+1, colunas = peso_max+1)
+    int linhas = n + 1;
+    int colunas = peso_max + 1;
+    int total = linhas * colunas;
+
+    int *buffer = malloc(total * sizeof(int));
+    if (!buffer) {
+        printf("Erro: sem memoria para tabela dinamica\n");
+        free(itens);
+        return 1;
+    }
+
+    int **tabela_dinamica = malloc(linhas * sizeof(int *));
+    if (!tabela_dinamica) {
+        printf("Erro: sem memoria para ponteiros da tabela\n");
+        free(buffer);
+        free(itens);
+        return 1;
+    }
+    for (int i = 0; i < linhas; ++i) tabela_dinamica[i] = buffer + i * colunas;
+
+    // inicializa com -1 (sentinela de nao calculado)
+    for (int i = 0; i < total; ++i) buffer[i] = -1;
+
+    // chama a programação dinâmica (preenche a tabela sob demanda)
+    int valor_pd = programacao_dinamica(itens, n, peso_max, tabela_dinamica);
+    // reconstrói os itens escolhidos a partir da tabela
+    itens_escolhidos_dp(itens, n, peso_max, tabela_dinamica);
+    imprimir_escolhidos(itens, n, "Lista de itens escolhidos - Programacao Dinamica:");
+    printf("\nValor máximo (programacao dinamica): %d\n", valor_pd);
+
+    // libera a tabela
+    free(tabela_dinamica);
+    free(buffer);
 
     free(itens);
     return 0;
