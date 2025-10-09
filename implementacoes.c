@@ -124,7 +124,7 @@ int algoritmo_guloso(ITEM itens[], int n, int peso_max)
     int maiorValor = 0; // Somatório dos valores dos itens selecionados
     int maiorPeso = 0;  // Somatório dos pesos dos itens selecionados
 
-    // Ordena o array de itens diretamente, em ordem decrescente de razão.  
+    // Ordena o array de itens diretamente, em ordem decrescente de razão.
     quickSort(itens, 0, n - 1);
 
     // Percorre o array já ordenado e adicionar os itens à mochila.
