@@ -131,7 +131,7 @@ int algoritmo_guloso(ITEM itens[], int n, int peso_max)
     {
         for (int j = 0; j < n; j++) // A cada razao escolhida, ele percorre o vetor original de itens
         {
-            if (razao[i] == itens[j].razao)
+            if (razao[i] == itens[j].razao && !itens[j].escolhido)
             { // Percorre até achar o item que possui a razão desejada
                 if (maiorPeso + itens[j].peso <= peso_max)
                 {
