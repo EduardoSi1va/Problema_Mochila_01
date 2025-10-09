@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <math.h>
 
-// Estrutura que representa um item da mochila
+// Struct que representa um item da mochila
 typedef struct item_
 {
     int peso, valor; // Peso e valor do item
@@ -25,38 +24,38 @@ void imprimir_escolhidos(ITEM itens[], int n, const char *titulo)
     }
 }
 
-// Função auxiliar que troca dois elementos de posição em um vetor de floats
-void swap(float v[], int i, int j)
+// Função auxiliar que troca dois ITENS de posição
+void swap_itens(ITEM v[], int i, int j)
 {
-    float temp = v[i];
+    ITEM temp = v[i];
     v[i] = v[j];
     v[j] = temp;
 }
 
-// Implementação do algoritmo QuickSort para ordenar vetor de floats (razões)
-void quickSort(float v[], int bottom, int top)
+// Implementação do algoritmo QuickSort para ordenar um vetor de ITENS pela razao (decrescente)
+void quickSort(ITEM v[], int bottom, int top)
 {
     // Escolhe o elemento do meio como pivô
-    float pivo = v[(bottom + top) / 2];
+    ITEM pivo = v[(bottom + top) / 2];
     int i = bottom, j = top;
 
     do
     {
-        // Procura um elemento maior que o pivô na parte esquerda
-        while (v[i] < pivo)
+        // Procura um elemento menor que o pivô na parte esquerda (ordem decrescente)
+        while (v[i].razao > pivo.razao)
             i++;
-        // Procura um elemento menor que o pivô na parte direita
-        while (v[j] > pivo)
+        // Procura um elemento maior que o pivô na parte direita (ordem decrescente)
+        while (v[j].razao < pivo.razao)
             j--;
 
         // Se os índices ainda não se cruzaram, faz a troca
         if (i <= j)
         {
-            swap(v, i, j); // Coloca menor à esquerda e maior à direita do pivô
+            swap_itens(v, i, j);
             i++;
             j--;
         }
-    } while (i < j); // Continua até os índices se encontrarem
+    } while (i <= j); // Erro corrigido aqui (era i < j, o correto é i <= j)
 
     // Chamadas recursivas para as duas partições
     if (j > bottom)
@@ -68,9 +67,13 @@ void quickSort(float v[], int bottom, int top)
 // Algoritmo de força bruta: testa todas as 2^n combinações possíveis
 int forca_bruta(ITEM itens[], int n, int peso_max)
 {
-    // Calcula o número total de combinações (2^n)
-    int total_combinacoes = (int)pow(2, n);
+
+    int total_combinacoes = 1;
+    for (int k = 0; k < n; k++) // Calcula o número total de combinações (2^n)
+        total_combinacoes *= 2;
+
     int melhor_valor = 0;
+    int melhor_comb_binaria_final = 0;
 
     // Testa cada combinação possível (representada por números de 0 a 2^n-1)
     for (int i = 0; i < total_combinacoes; i++)
@@ -95,78 +98,46 @@ int forca_bruta(ITEM itens[], int n, int peso_max)
         if (peso_atual <= peso_max && valor_atual > melhor_valor)
         {
             melhor_valor = valor_atual;
+            melhor_comb_binaria_final = i;
+        }
+    }
 
-            // Reconstrói a melhor combinação para marcar os itens escolhidos
-            int melhor_comb_binaria = i;
-
-            // Limpa todas as escolhas anteriores
-            for (int t = 0; t < n; t++)
-                itens[t].escolhido = false;
-
-            // Marca os itens da melhor combinação
-            for (int k = 0; k < n; k++)
-            {
-                if (melhor_comb_binaria % 2 == 1)
-                {
-                    itens[k].escolhido = true;
-                }
-                melhor_comb_binaria = melhor_comb_binaria / 2;
-            }
+    // Marca os itens da melhor combinação DEPOIS de testar todas
+    for (int k = 0; k < n; k++)
+    {
+        if ((melhor_comb_binaria_final >> k) & 1)
+        {
+            itens[k].escolhido = true;
+        }
+        else
+        {
+            itens[k].escolhido = false;
         }
     }
 
     return melhor_valor;
 }
 
-// Algoritmo guloso: seleciona itens em ordem decrescente de razão valor/peso
+/// Algoritmo guloso O(n log n): ordena os itens pela razão valor/peso e seleciona os melhores.
 int algoritmo_guloso(ITEM itens[], int n, int peso_max)
 {
     int maiorValor = 0; // Somatório dos valores dos itens selecionados
     int maiorPeso = 0;  // Somatório dos pesos dos itens selecionados
 
-    // Cria uma cópia do vetor de razões para ordenação
-    float *razao = malloc(n * sizeof *razao);
-    if (!razao)
-    {
-        printf("Erro na alocação de memória\n");
-        return 0;
-    }
+    // Ordena o array de itens diretamente, em ordem decrescente de razão.  
+    quickSort(itens, 0, n - 1);
 
-    // Copia as razões dos itens para o vetor auxiliar
+    // Percorre o array já ordenado e adicionar os itens à mochila.
     for (int i = 0; i < n; i++)
     {
-        razao[i] = itens[i].razao;
-    }
-
-    // Ordena o vetor de razões em ordem crescente (quicksort)
-    quickSort(razao, 0, n - 1);
-
-    // Processa as razões da maior para a menor (percorre de trás para frente)
-    for (int i = n - 1; i >= 0 && maiorPeso < peso_max; i--)
-    {
-        // Para cada razão, encontra o item correspondente no vetor original
-        for (int j = 0; j < n; j++)
+        // Verifica se o item atual (que tem a melhor razão disponível) cabe na mochila
+        if (maiorPeso + itens[i].peso <= peso_max)
         {
-            // Caso existam itens com razões iguais ou parecidas, verifica se ele ja foi escolhido
-            if (itens[j].escolhido)
-                continue;
-
-            // Compara a razão atual com a razão do item j
-            if (razao[i] == itens[j].razao)
-            {
-                // Verifica se o item cabe na mochila
-                if (maiorPeso + itens[j].peso <= peso_max)
-                {
-                    maiorPeso += itens[j].peso;   // Adiciona peso ao total
-                    maiorValor += itens[j].valor; // Adiciona valor ao total
-                    itens[j].escolhido = true;    // Marca item como selecionado
-                }
-                break; // Caso o item seja encontrado, passa para a próxima razão
-            }
+            maiorPeso += itens[i].peso;   // Adiciona peso ao total
+            maiorValor += itens[i].valor; // Adiciona valor ao total
+            itens[i].escolhido = true;    // Marca item como selecionado
         }
     }
-
-    free(razao); // Libera a memória do vetor auxiliar
     return maiorValor;
 }
 
@@ -212,10 +183,14 @@ void itens_escolhidos_dp(ITEM itens[], int n, int peso_max, int **tabela_dinamic
 
 int main(void)
 {
-    int n, peso_max;
-
-    // Lê o número de itens e a capacidade máxima da mochila
-    scanf("%d %d", &n, &peso_max);
+    printf("Digite a quantidade de itens: ");
+    int n;
+    scanf("%d", &n);
+    printf("\n");
+    printf("Digite o peso máximo suportado pela mochila: ");
+    int peso_max;
+    scanf("%d", &peso_max);
+    printf("\n");
 
     if (n <= 0)
     {
@@ -223,88 +198,83 @@ int main(void)
         return 0;
     }
 
-    // Aloca memória dinamicamente para o vetor de itens
-    ITEM *itens = malloc(n * sizeof(ITEM));
-    if (!itens)
+    ITEM *itens_original = malloc(n * sizeof(ITEM));
+    ITEM *itens_guloso = malloc(n * sizeof(ITEM)); // Vetor de itens auxiliar para o algoritmo guloso (já que esse faz a ordenação dos itens mediante do quicksort)
+
+    if (!itens_original || !itens_guloso)
     {
         printf("Erro na alocação de memória\n");
         return 1;
     }
 
-    // Lê os dados de cada item (valor e peso) e calcula a razão valor/peso
+    // Lê os dados de cada item e já faz a cópia
     for (int i = 0; i < n; i++)
     {
-        scanf("%d %d", &itens[i].valor, &itens[i].peso);
-        if (itens[i].peso <= 0)
+        scanf("%d %d", &itens_original[i].valor, &itens_original[i].peso);
+        if (itens_original[i].peso <= 0)
         {
             printf("Entrada de peso inválida");
             return 1;
         }
-        itens[i].razao = (float)itens[i].valor / (float)itens[i].peso; // Calcula a utilidade (razão) do item
-        itens[i].escolhido = false; // Inicializa como não escolhido
+        itens_original[i].razao = (float)itens_original[i].valor / (float)itens_original[i].peso;
+        itens_original[i].escolhido = false;
+
+        // Copia os dados para o array que será usado pelo guloso
+        itens_guloso[i] = itens_original[i];
     }
 
-    int valor_forca_bruta = forca_bruta(itens, n, peso_max);
-    imprimir_escolhidos(itens, n, "Lista de itens escolhidos - Força Bruta:");
+    // A força bruta usa o array original
+    int valor_forca_bruta = forca_bruta(itens_original, n, peso_max);
+    imprimir_escolhidos(itens_original, n, "Lista de itens escolhidos - Força Bruta:");
     printf("\nValor máximo (força bruta): %d\n", valor_forca_bruta);
 
-    // Limpa as escolhas para o próximo algoritmo
-    for (int i = 0; i < n; i++)
-    {
-        itens[i].escolhido = false;
-    }
-
-    int valor_algoritmo_guloso = algoritmo_guloso(itens, n, peso_max);
-    imprimir_escolhidos(itens, n, "Lista de itens escolhidos - Algoritmo Guloso:");
+    // O algoritmo guloso usa SUA PRÓPRIA CÓPIA para poder ordenar sem afetar os outros
+    int valor_algoritmo_guloso = algoritmo_guloso(itens_guloso, n, peso_max);
+    imprimir_escolhidos(itens_guloso, n, "Lista de itens escolhidos - Algoritmo Guloso:");
     printf("\nValor máximo (algoritmo guloso): %d\n", valor_algoritmo_guloso);
 
-    // Limpa as escolhas antes da programação dinâmica
+    // Limpa as escolhas do array original antes da programação dinâmica
     for (int i = 0; i < n; ++i)
-        itens[i].escolhido = false;
+        itens_original[i].escolhido = false;
 
-    // Dimensões da tabela: (n+1) linhas × (peso_max+1) colunas
     int linhas = n + 1;
     int colunas = peso_max + 1;
     int total = linhas * colunas;
 
-    // Aloca um bloco contíguo para todos os elementos da tabela
     int *celulas = malloc(total * sizeof(int));
     if (!celulas)
     {
-        printf("Erro: Sem memória para alocação das células da tabela dinamica\n");
-        free(itens);
+        printf("Sem memória para alocação das células da tabela dinamica\n");
+        free(itens_original);
+        free(itens_guloso);
         return 1;
     }
 
-    // Aloca vetor de ponteiros para permitir acesso bidimensional tabela[i][j]
     int **tabela_dinamica = malloc(linhas * sizeof(int *));
     if (!tabela_dinamica)
     {
-        printf("Erro: Sem memória para alocação dos ponteiros da tabela\n");
+        printf("Sem memória para alocação dos ponteiros da tabela\n");
         free(celulas);
-        free(itens);
+        free(itens_original);
+        free(itens_guloso);
         return 1;
     }
 
-    // Configura cada ponteiro de linha para apontar para a posição correta no bloco contíguo de memória
     for (int i = 0; i < linhas; ++i)
         tabela_dinamica[i] = celulas + i * colunas;
 
-    // Inicializa toda a tabela com -1 (sentinela para "não calculado")
     for (int j = 0; j < total; ++j)
         celulas[j] = -1;
 
-    int valor_pd = programacao_dinamica(itens, n, peso_max, tabela_dinamica);
-
-    // Reconstrói quais itens foram escolhidos na solução da programação dinâmica
-    itens_escolhidos_dp(itens, n, peso_max, tabela_dinamica);
-
-    imprimir_escolhidos(itens, n, "Lista de itens escolhidos - Programacao Dinamica:");
+    int valor_pd = programacao_dinamica(itens_original, n, peso_max, tabela_dinamica);
+    itens_escolhidos_dp(itens_original, n, peso_max, tabela_dinamica);
+    imprimir_escolhidos(itens_original, n, "Lista de itens escolhidos - Programacao Dinamica:");
     printf("\nValor máximo (programacao dinamica): %d\n", valor_pd);
 
-    free(tabela_dinamica); // Libera o vetor de ponteiros
-    free(celulas);         // Libera o bloco contíguo de dados
-    free(itens);           // Libera o vetor de itens
+    free(tabela_dinamica);
+    free(celulas);
+    free(itens_original);
+    free(itens_guloso);
 
     return 0;
 }
