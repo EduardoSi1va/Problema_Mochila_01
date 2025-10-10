@@ -118,7 +118,7 @@ int forca_bruta(ITEM itens[], int n, int peso_max)
     return melhor_valor;
 }
 
-/// Algoritmo guloso O(n log n): ordena os itens pela razão valor/peso e seleciona os melhores.
+// Algoritmo guloso O(n log n): ordena os itens pela razão valor/peso e seleciona os melhores.
 int algoritmo_guloso(ITEM itens[], int n, int peso_max)
 {
     int maiorValor = 0; // Somatório dos valores dos itens selecionados
